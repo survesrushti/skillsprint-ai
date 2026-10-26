@@ -1,17 +1,392 @@
-# SkillSprint AI – An Adaptive Learning Coach
+# SkillSprint AI — Adaptive Computational Learning Coach
 
-SkillSprint AI is a web-based adaptive learning coach that helps learners not only create personalized learning roadmaps but also stay committed and complete them through intelligent planning, adaptive rescheduling, and progress tracking.
+SkillSprint AI is an intelligent, self-paced learning coach that transforms static learning roadmaps into dynamic, computationally optimized study journeys. By integrating **A* Graph Search**, **Mamdani Fuzzy Logic**, and a **Rule-Based Expert System**, SkillSprint AI actively monitors learner progress, calculates cognitive pace drift, and automatically rebalances study plans when schedules slip.
 
-## Tech Stack (Planned)
+---
 
-- Frontend: React + TypeScript + Tailwind CSS
-- Backend: Python (Flask)
-- Database: MySQL
-- Authentication: Clerk
-- Version Control: Git & GitHub
+## Academic Context
 
-## Project
+- **Program:** M.Sc. Computer Science (Computational Intelligence)
+- **Project Type:** Mini Project
+- **Developer:** Srushti Surve
+- **Domain:** Computational Intelligence, Adaptive Learning Systems, Graph Optimization, Applied Knowledge Systems
 
-M.Sc. Computer Science (Computational Intelligence) Mini Project
+---
 
-Developed by **Srushti Surve**.
+## Problem Statement
+
+Self-directed online learners encounter the **"intention-behavior gap"**: while setting ambitious career learning goals is straightforward, sticking to rigid schedules rarely succeeds. Life interruptions, cognitive fatigue, and fluctuating workloads inevitably cause study backlog. Traditional syllabus planners remain static and fragile—a single missed week leaves learners with mounting delays, decision paralysis, and eventual abandonment.
+
+SkillSprint AI addresses this by treating learning schedule planning as an **adaptive computational optimization problem**:
+1. **Topological Prerequisite Dependencies:** Topics form Directed Acyclic Graphs (DAGs) with strict prerequisite constraints that must be preserved.
+2. **Dynamic Workload Calibration:** Daily study hours and learner pace fluctuate, requiring non-linear, fuzzy cognitive workload assessment.
+3. **Transparent Remediation:** Schedule rebalancing must apply human-understandable heuristic strategies (e.g., extending deadlines, compressing pace, deferring optional electives) accompanied by explicit explanation traces.
+
+---
+
+## Architecture Overview
+
+```mermaid
+flowchart TD
+    subgraph Client["Frontend Client (React 19 + TypeScript + Vite)"]
+        UI["Tailwind CSS UI & Lucide Icons"]
+        Router["React Router v7"]
+        ClerkClient["Clerk React SDK (Auth State)"]
+        Query["TanStack Query (API Client)"]
+    end
+
+    subgraph AuthProvider["Identity Provider"]
+        ClerkService["Clerk Authentication Service"]
+        JWKS["Clerk JWKS Endpoint (Public Keys)"]
+    end
+
+    subgraph Backend["Backend Application (Flask 3.1)"]
+        AuthMiddleware["Auth Middleware (RS256 JWT Verification)"]
+        Blueprints["Flask REST Blueprints"]
+        ORM["SQLAlchemy ORM (Data Models)"]
+    end
+
+    subgraph CIEngines["Computational Intelligence Engines"]
+        Search["A* Search Optimizer (DAG Topological Order & Daily Packing)"]
+        Fuzzy["Fuzzy Logic Engine (Mamdani Workload & Pace Adjustment)"]
+        Expert["Expert System (Rule-Based Strategy & Explanation Trace)"]
+        Rescheduler["Composite Rescheduler (Coordination Pipeline)"]
+    end
+
+    subgraph Storage["Persistence Layer"]
+        MySQL[("MySQL 8.0+ Relational Database")]
+    end
+
+    UI --> Router
+    Router --> Query
+    ClerkClient -->|Tokens| ClerkService
+    Query -->|Bearer JWT| AuthMiddleware
+    AuthMiddleware -->|Fetch & Cache Public Keys| JWKS
+    AuthMiddleware --> Blueprints
+    Blueprints --> ORM
+    ORM --> MySQL
+    Blueprints --> Rescheduler
+    Rescheduler --> Fuzzy
+    Rescheduler --> Expert
+    Rescheduler --> Search
+```
+
+---
+
+## Computational Intelligence Techniques
+
+SkillSprint AI combines three distinct branches of Computational Intelligence to deliver continuous learning adaptation:
+
+### 1. A* Graph Search Optimizer (`backend/ci_engines/search/`)
+- **Topological Prerequisite Resolution:** Models learning tracks as Directed Acyclic Graphs (DAGs), where vertices represent topics and directed edges define strict prerequisite dependencies.
+- **State Representation:** A search state is defined by the set of topics completed so far and current elapsed study minutes. State transitions expand only prerequisite-satisfied candidate topics.
+- **Heuristic Admissibility & Consistency:** Utilizes an admissible and consistent heuristic $h(n)$ based on the cumulative estimated study minutes and priority weights of remaining unmastered topics:
+  $$h(n) = \sum_{t \in \text{Remaining}(n)} \text{Cost}_{\min}(t)$$
+  This guarantees optimal or near-optimal topic ordering without overestimating remaining effort.
+- **Capacity-Constrained Bin Packing:** The `StudyPlanPacker` takes the topological sequence generated by A* and packs topics into discrete calendar days according to the learner's calibrated daily study capacity ($\text{hours/day}$).
+
+### 2. Mamdani Fuzzy Inference Engine (`backend/ci_engines/fuzzy/`)
+- **Fuzzification:** Translates ambiguous learner progress metrics into fuzzy linguistic sets using triangular and trapezoidal membership functions:
+  - **Time Availability Ratio ($T_{\text{avail}}$):** Categorized into `Scarce`, `Adequate`, and `Ample` (domain $[0.0, 2.0]$).
+  - **Progress Ratio ($P_{\text{ratio}}$):** Categorized into `Behind`, `OnTrack`, and `Ahead` (domain $[0.0, 2.0]$).
+- **Fuzzy Rule Base:** Evaluates Mamdani min-max composition rules mapping availability and progress combinations to 5 workload adjustment sets (`LargeDecrease`, `SmallDecrease`, `NoChange`, `SmallIncrease`, `LargeIncrease`) defined over $[-0.40, +0.40]$ (e.g., *IF Time Availability is Scarce AND Progress is Behind, THEN Workload Adjustment is LargeIncrease*).
+- **Centroid Defuzzification:** Computes the center of gravity over the aggregated output fuzzy set to derive a crisp workload scaling factor, which the composite rescheduler safely bounds within $[-0.30, +0.40]$ to modulate daily study intensity.
+
+### 3. Rule-Based Expert System (`backend/ci_engines/expert_system/`)
+- **Fact Model:** Ingests dynamic learner telemetry into structured facts:
+  - Missed study days count
+  - Accumulated backlog minutes
+  - Current study streak
+  - Remaining optional vs. core topics
+  - Days remaining until target deadline
+  - Historical replan frequency
+- **Forward-Chaining Rule Execution:** Evaluates prioritized declarative production rules to resolve conflicting scheduling goals (e.g., maintaining target completion date vs. preventing learner burnout).
+- **Strategy Prescriptions:**
+  - `extend_deadline`: Safely stretches target dates when workload exceeds maximum sustainable capacity.
+  - `compress_pace`: Temporarily increases daily study minutes when minor delays can be absorbed.
+  - `relax_pace`: Lowers intensity when the learner is consistently ahead of schedule.
+  - `defer_optional`: Re-orders non-essential elective modules to after the primary target deadline.
+  - `redistribute_backlog`: Smooths overdue topics evenly across the remaining sprint days.
+- **Explanation Traceability:** The `ExplanationTrace` generator records which telemetry facts matched specific rules, providing the learner with plain-English rationales for every proposed schedule adjustment.
+
+### 4. Composite Rescheduling Pipeline (`backend/ci_engines/rescheduler/`)
+Coordinates the CI engines into an automated rebalancing loop:
+1. Evaluates current progress drift and time availability via the **Fuzzy Engine**.
+2. Diagnoses root causes and prescribes a targeted remediation strategy via the **Expert System**.
+3. Re-runs the **A* Search Engine** with adjusted capacity and topic priorities to generate a newly balanced calendar plan.
+
+---
+
+## Key Features
+
+- **Curated Learning Tracks:** Built-in multi-topic tracks for **Full Stack Development**, **Data Analytics**, and **UI/UX Design**, complete with topic difficulties, estimated minutes, priorities, and prerequisite graphs.
+- **Goal Commitment Formulation:** Onboarding flow capturing target completion deadlines, daily study budgets, and baseline topic self-assessments to bypass already-mastered concepts.
+- **Interactive DAG Roadmap:** Visual module cards showing topic dependencies, completion states, estimated duration, and interchangeable curated learning resources (articles, video lectures, documentation).
+- **Real-Time Learner Dashboard:** At-a-glance streak metrics, pace drift alerts (*"You are slightly behind schedule"*), active sprint launches, and reflection prompts.
+- **Deep-Work Workspace:** Integrated Pomodoro study timer with focus/break cycles, audio chime alerts, pause/resume, topic completion/skipping, and direct resource launchers.
+- **Adaptive Rescheduling Interface:** One-click plan re-optimization showing diagnostic facts, strategy rationale, and side-by-side schedule adjustments.
+- **Weekly Qualitative Reflections:** Check-ins capturing subjective confidence, energy levels, and study obstacles to complement quantitative metrics.
+- **Clerk Authentication UI:** Custom-branded dual-panel authentication (staircase mark, pastel glassmorphism mesh) with seamless sign-in, sign-up, session restoration, and protected route guards.
+
+---
+
+## Technology Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend Framework** | React 19, TypeScript, Vite |
+| **Styling & Icons** | Tailwind CSS v4, Lucide React |
+| **State & Data Fetching**| TanStack Query v5, React Router v7 |
+| **Visualizations & Dates**| Recharts, date-fns |
+| **Backend Framework** | Python 3.11+, Flask 3.1, Werkzeug |
+| **Database & ORM** | MySQL 8.0+, SQLAlchemy 2.1, Flask-SQLAlchemy 3.1, PyMySQL |
+| **Authentication & Crypto**| Clerk React SDK, PyJWT 2.15 (RS256 verification), Cryptography |
+| **Computational Engines** | Custom A* DAG Optimizer, Mamdani Fuzzy System, Forward-Chaining Expert System |
+| **Testing & Quality** | Pytest 9.1 (90 tests), ESLint 10, TypeScript Compiler (`tsc`) |
+
+---
+
+## Project Structure
+
+```text
+skillsprint-ai/
+├── README.md                           # Portfolio project documentation
+├── .gitignore                          # Recursive Git exclusions (.env, pycache, etc.)
+├── pytest.ini                          # Pytest configuration and testpaths
+│
+├── backend/                            # Flask REST API & CI Subsystem
+│   ├── app.py                          # Flask application factory, CORS, and blueprint registration
+│   ├── extensions.py                   # SQLAlchemy database instance
+│   ├── requirements.txt                # Python package dependencies
+│   ├── .env.example                    # Backend environment variable template
+│   │
+│   ├── ci_engines/                     # Computational Intelligence Implementations
+│   │   ├── search/                     # A* DAG search, heuristic, cost, and packer
+│   │   ├── fuzzy/                      # Membership functions, rules, Mamdani inference
+│   │   ├── expert_system/              # Facts, rules, strategies, and explanation trace
+│   │   └── rescheduler/                # Composite rescheduling pipeline
+│   │
+│   ├── middleware/                     # Authentication & security
+│   │   └── auth.py                     # Clerk JWKS RS256 token verification middleware
+│   │
+│   ├── models/                         # SQLAlchemy database models
+│   │   ├── user.py, track.py, topic.py, topic_prerequisite.py, resource.py
+│   │   ├── goal.py, roadmap.py, roadmap_item.py, study_log.py, reflection.py
+│   │   └── __init__.py
+│   │
+│   ├── routes/                         # REST API endpoints
+│   │   ├── goals.py, roadmap.py, tasks.py, progress.py
+│   │   ├── tracks.py, resources.py, reflections.py
+│   │   └── __init__.py
+│   │
+│   ├── seed_data/                      # Database seeding scripts
+│   │   └── seed.py                     # Curated tracks, topics, dependencies & resources
+│   │
+│   └── tests/                          # Backend unit & integration tests
+│       ├── test_auth.py                # RS256 token verification & isolation tests
+│       ├── test_active_goal.py         # Goal lifecycle and single-active constraints
+│       ├── test_known_topics_and_prerequisites.py
+│       ├── test_learner_journey_e2e.py # End-to-end user journey test
+│       ├── test_reflections.py         # Weekly reflection tests
+│       ├── test_resources.py           # Curated resource catalog tests
+│       ├── test_routes.py              # REST API endpoint tests
+│       └── test_tracks.py              # Track exploration tests
+│
+└── frontend/                           # React + TypeScript + Vite SPA
+    ├── package.json                    # Frontend dependencies and npm scripts
+    ├── vite.config.ts                  # Vite build configuration
+    ├── .env.example                    # Frontend environment variable template
+    │
+    └── src/
+        ├── App.tsx                     # Route definitions and ambient layout
+        ├── main.tsx                    # Application entry point with Clerk Provider
+        ├── index.css                   # Tailwind v4 theme tokens and custom variants
+        │
+        ├── api/                        # Typed API clients and endpoints
+        │   └── client.ts               # Axios / Fetch client with Clerk Bearer token injection
+        │
+        ├── components/                 # Reusable UI components
+        │   ├── auth/                   # ProtectedRoute wrapper and auth guards
+        │   ├── dev/                    # Development tools and demo switchers
+        │   ├── layout/                 # Navigation bars, footers, and app wrappers
+        │   └── reflections/            # Weekly reflection dialogs
+        │
+        └── pages/                      # Page components
+            ├── LandingPage.tsx         # Welcome hero, feature highlights, and track cards
+            ├── TracksPage.tsx          # Track selection catalog
+            ├── TrackDetailPage.tsx     # Deep dive into topic syllabus and prerequisites
+            ├── OnboardingPage.tsx      # Goal commitment & baseline knowledge questionnaire
+            ├── RoadmapPage.tsx         # Interactive DAG visualizer and resource swapper
+            ├── DashboardPage.tsx       # Progress tracking, streaks, and pace notices
+            ├── WorkspacePage.tsx       # Pomodoro timer, active task, and completion actions
+            ├── ReplanningPage.tsx      # Adaptive rescheduling diagnostics and rebalancing
+            ├── SignInPage.tsx          # Custom dual-panel Clerk sign-in screen
+            ├── SignUpPage.tsx          # Custom dual-panel Clerk sign-up screen
+            └── SSOCallbackPage.tsx     # OAuth / SSO callback redirect handler
+```
+
+---
+
+## Prerequisites
+
+Before running the application locally, ensure you have installed:
+- **Node.js:** v18.0.0 or higher
+- **npm:** v9.0.0 or higher
+- **Python:** v3.11.0 or higher
+- **MySQL Server:** v8.0 or higher
+- **Clerk Account:** A free developer instance from [Clerk](https://clerk.com) for authentication.
+
+---
+
+## Local Setup & Installation
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/<your-username>/skillsprint-ai.git
+cd skillsprint-ai
+```
+
+---
+
+### 2. Configure the Database
+Create a new MySQL database for the application:
+```sql
+CREATE DATABASE skillsprint_ai CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+---
+
+### 3. Backend Setup
+
+#### PowerShell (Windows):
+```powershell
+# Navigate to backend directory
+cd backend
+
+# Create and activate Python virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install backend dependencies
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# Create local environment configuration
+Copy-Item .env.example .env
+```
+
+#### Bash (Linux / macOS):
+```bash
+# Navigate to backend directory
+cd backend
+
+# Create and activate Python virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install backend dependencies
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# Create local environment configuration
+cp .env.example .env
+```
+
+#### Configure `backend/.env`:
+Update `backend/.env` with your local MySQL credentials and your Clerk JWKS endpoint:
+```env
+SECRET_KEY=replace-with-a-secure-random-secret
+DATABASE_URL=mysql+pymysql://root:yourpassword@localhost:3306/skillsprint_ai
+CLERK_JWKS_URL=https://<your-clerk-frontend-api>/.well-known/jwks.json
+```
+
+#### Seed Initial Catalog Data:
+Populate the database with curated learning tracks, topics, prerequisite DAGs, and study resources:
+```bash
+python seed_data/seed.py
+```
+
+#### Start the Flask Backend Server:
+```bash
+python app.py
+```
+The API server will run at `http://127.0.0.1:5000`.
+
+---
+
+### 4. Frontend Setup
+
+Open a new terminal window:
+
+#### PowerShell / Bash:
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install npm dependencies
+npm install
+
+# Create local environment configuration
+# Windows: Copy-Item .env.example .env
+# Unix:    cp .env.example .env
+```
+
+#### Configure `frontend/.env`:
+Update `frontend/.env` with your Clerk publishable key:
+```env
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key
+```
+
+#### Start the Vite Development Server:
+```bash
+npm run dev
+```
+The web application will open at `http://localhost:5173`.
+
+---
+
+## Verification & Testing
+
+SkillSprint AI maintains an extensive test suite covering core Computational Intelligence engines, authentication middleware, and API endpoints.
+
+### 1. Test Computational Intelligence Engines (29 Tests)
+Verify the A* search optimizer, Mamdani fuzzy inference engine, and rule-based expert rescheduler:
+```bash
+# Run from repository root
+python -m pytest backend/ci_engines
+```
+
+### 2. Run Full Backend Test Suite (90 Tests)
+Run the complete backend test suite (requires local MySQL test database):
+```bash
+# Run from repository root
+python -m pytest
+```
+
+### 3. Frontend Lint & Code Quality
+```bash
+cd frontend
+npm run lint
+```
+
+### 4. Frontend Production Build
+Validate TypeScript typings and build the optimized production client bundle:
+```bash
+cd frontend
+npm run build
+```
+
+---
+
+## Security & Architecture Principles
+
+- **Stateless RS256 Verification:** Backend endpoints verify Clerk-issued Bearer JWTs cryptographically using public keys fetched from Clerk's JSON Web Key Set (`CLERK_JWKS_URL`). No shared symmetric secrets or database passwords need to be passed over the wire.
+- **Fail-Closed Security Posture:** If the authentication service or JWKS endpoint is unconfigured or unreachable, all protected endpoints immediately reject incoming requests with HTTP `401 Unauthorized`.
+- **Tenant Data Isolation:** All user queries strictly scope roadmaps, goals, study logs, and reflections by `clerk_user_id`. Spoofed headers (such as `X-Clerk-User-Id`) are explicitly ignored in favor of cryptographically verified claims.
+- **Credential Hygiene:** Local configuration files (`.env`, `.env.local`) are strictly excluded from version control via `.gitignore`. Reusable, safe `.env.example` templates provide clear onboarding documentation without leaking secrets.
+
+---
+
+## License
+
+This project is developed as an academic Mini Project for the **M.Sc. Computer Science (Computational Intelligence)** degree program. All rights reserved.
