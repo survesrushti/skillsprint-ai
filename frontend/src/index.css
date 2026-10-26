@@ -1,1 +1,327 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Surfaces & Backgrounds */
+  --color-obsidian-950: var(--app-obsidian-950);
+  --color-obsidian-900: var(--app-obsidian-900);
+  --color-obsidian-850: var(--app-obsidian-850);
+  --color-obsidian-800: var(--app-obsidian-800);
+  --color-obsidian-700: var(--app-obsidian-700);
+
+  /* Dominant Accents */
+  --color-accent-violet: var(--app-accent-violet);
+  --color-accent-indigo: var(--app-accent-indigo);
+  --color-accent-cyan: var(--app-accent-cyan);
+  --color-accent-emerald: var(--app-accent-emerald);
+  --color-accent-amber: var(--app-accent-amber);
+  --color-accent-rose: var(--app-accent-rose);
+
+  /* Neutral Slate scale */
+  --color-slate-950: var(--app-slate-950);
+  --color-slate-900: var(--app-slate-900);
+  --color-slate-800: var(--app-slate-800);
+  --color-slate-700: var(--app-slate-700);
+  --color-slate-600: var(--app-slate-600);
+  --color-slate-500: var(--app-slate-500);
+  --color-slate-400: var(--app-slate-400);
+  --color-slate-300: var(--app-slate-300);
+  --color-slate-200: var(--app-slate-200);
+  --color-slate-100: var(--app-slate-100);
+  --color-slate-50:  var(--app-slate-50);
+
+  /* Indigo scale */
+  --color-indigo-600: var(--app-indigo-600);
+  --color-indigo-500: var(--app-indigo-500);
+  --color-indigo-400: var(--app-indigo-400);
+  --color-indigo-300: var(--app-indigo-300);
+  --color-indigo-100: var(--app-indigo-100);
+
+  /* Cyan scale */
+  --color-cyan-500: var(--app-cyan-500);
+  --color-cyan-400: var(--app-cyan-400);
+  --color-cyan-300: var(--app-cyan-300);
+
+  /* Glowing drop shadows */
+  --shadow-glow-violet: var(--app-glow-violet);
+  --shadow-glow-cyan: var(--app-glow-cyan);
+  --shadow-glow-emerald: var(--app-glow-emerald);
+
+  /* Dynamic text-white token (dark plum in light mode, pure white in dark mode) */
+  --color-white: var(--app-text-white);
+}
+
+/* ==========================================================================
+   THEME DEFINITIONS: LIGHT MODE (:root) & DARK MODE (html.dark)
+   ========================================================================== */
+
+:root {
+  /* ==================== LIGHT MODE: PASTEL GRADIENT THEME (TABLO STYLE) ====================
+     Pearl grey/off-white canvas, warm pastel yellow, soft peach, blush pink,
+     cotton-candy pink, and subtle mint glows with crisp near-black typography (#050505). */
+  --app-obsidian-950: #F0EFF2;  /* pearl grey/off-white base */
+  --app-obsidian-900: #ffffff;  /* crisp white card surface */
+  --app-obsidian-850: #f7f4f6;  /* soft off-white surface for subtle depth */
+  --app-obsidian-800: #eee6ec;  /* interactive card surface */
+  --app-obsidian-700: #e2d5df;  /* elevated border / active states */
+
+  --app-text-white: #050505;    /* crisp, high-contrast near-black for headings (WCAG AAA > 18:1) */
+
+  --app-accent-violet: #e11d48; /* vibrant rose-red brand primary CTA */
+  --app-accent-indigo: #be123c; /* deep rose accent */
+  --app-accent-cyan: #e11d48;   /* delicate rose highlight */
+  --app-accent-emerald: #059669; /* gentle emerald for completion checkmarks */
+  --app-accent-amber: #d97706;   /* warm amber highlight used very sparingly */
+  --app-accent-rose: #e11d48;    /* vibrant rose-red */
+
+  --app-slate-950: #050505;      /* crisp near-black for text on amber/emerald buttons */
+  --app-slate-900: #ffffff;      /* crisp white container */
+  --app-slate-800: #e4dbe3;      /* restrained card border with subtle plum warmth */
+  --app-slate-700: #d2c4d1;      /* hover border */
+  --app-slate-600: #877a8d;
+  --app-slate-500: #6c5e73;      /* readable muted text */
+  --app-slate-400: #504358;      /* readable secondary text (contrast > 6.5:1) */
+  --app-slate-300: #362a3e;      /* readable dark body text */
+  --app-slate-200: #221829;      /* dark subtitle text */
+  --app-slate-100: #120a17;      /* primary body text (contrast > 15:1) */
+  --app-slate-50:  #050505;
+
+  --app-indigo-600: #be123c;
+  --app-indigo-500: #e11d48;
+  --app-indigo-400: #f43f5e;
+  --app-indigo-300: #fb7185;
+  --app-indigo-100: #881337;     /* rich rose-berry for smooth, high-contrast gradient text */
+
+  --app-cyan-500: #e11d48;
+  --app-cyan-400: #f43f5e;
+  --app-cyan-300: #9f1239;      /* rich rose-berry for high contrast telemetry labels */
+
+  --app-glow-violet: 0 8px 24px -4px rgba(225, 29, 72, 0.22);
+  --app-glow-cyan: 0 8px 20px -4px rgba(244, 63, 94, 0.18);
+  --app-glow-emerald: 0 8px 20px -4px rgba(5, 150, 105, 0.2);
+
+  --glass-panel-bg: rgba(255, 255, 255, 0.94);
+  --glass-panel-border: rgba(18, 16, 22, 0.08);
+  --glass-card-bg: rgba(255, 255, 255, 0.88);
+  --glass-card-border: rgba(18, 16, 22, 0.07);
+  --glass-card-hover-border: rgba(225, 29, 72, 0.28);
+  --glass-card-hover-shadow: 0 16px 36px -10px rgba(242, 179, 146, 0.24), 0 0 20px -2px rgba(238, 157, 204, 0.16);
+  --hero-glow-bg:
+    radial-gradient(ellipse 70% 60% at 85% -5%, rgba(242, 197, 96, 0.45) 0%, transparent 65%),
+    radial-gradient(ellipse 65% 55% at 12% 75%, rgba(238, 157, 204, 0.48) 0%, transparent 70%),
+    radial-gradient(ellipse 55% 45% at 55% 30%, rgba(242, 179, 146, 0.35) 0%, transparent 65%);
+  --scrollbar-track: #F0EFF2;
+  --scrollbar-thumb: rgba(225, 29, 72, 0.22);
+  --scrollbar-thumb-hover: rgba(225, 29, 72, 0.45);
+  --gradient-border-bg: linear-gradient(135deg, rgba(242, 197, 96, 0.3), rgba(238, 157, 204, 0.15) 50%, rgba(225, 29, 72, 0.25));
+}
+
+html.dark {
+  /* ==================== DARK MODE (Preserved Blush Charcoal) ====================
+     Deep blush-charcoal backgrounds, radiant pink accents, and very limited orange. */
+  --app-obsidian-950: #110c12;  /* dark velvet blush-charcoal */
+  --app-obsidian-900: #19121a;  /* warm blush-slate surface */
+  --app-obsidian-850: #221824;  /* elevated card surface */
+  --app-obsidian-800: #2c202f;  /* interactive surface */
+  --app-obsidian-700: #3c2d40;  /* deep rose surface */
+
+  --app-text-white: #ffffff;    /* crisp white for dark backgrounds */
+
+  --app-accent-violet: #fb7185; /* radiant blush pink */
+  --app-accent-indigo: #f43f5e; /* vibrant rose blush */
+  --app-accent-cyan: #fda4af;   /* delicate rose quartz highlight */
+  --app-accent-emerald: #34d399; /* soft mint for completion checkmarks only */
+  --app-accent-amber: #fb923c;   /* warm peach-orange for tiny highlights only */
+  --app-accent-rose: #f43f5e;    /* deep rose blush */
+
+  --app-slate-950: #0f0a10;
+  --app-slate-900: #170f18;
+  --app-slate-800: #2d1e2e;      /* warm blush-slate borders */
+  --app-slate-700: #422d44;
+  --app-slate-600: #634666;
+  --app-slate-500: #8f6d92;
+  --app-slate-400: #c2abc1;      /* clear, readable warm blush-tinted secondary text */
+  --app-slate-300: #e0d0df;
+  --app-slate-200: #efe4ef;
+  --app-slate-100: #fbf5fc;
+  --app-slate-50:  #fffaff;
+
+  --app-indigo-600: #e11d48;
+  --app-indigo-500: #f43f5e;
+  --app-indigo-400: #fb7185;
+  --app-indigo-300: #fda4af;
+  --app-indigo-100: #fce7f3;
+
+  --app-cyan-500: #fb7185;
+  --app-cyan-400: #fda4af;
+  --app-cyan-300: #fecdd3;
+
+  --app-glow-violet: 0 0 35px -5px rgba(251, 113, 133, 0.32);
+  --app-glow-cyan: 0 0 30px -5px rgba(253, 164, 175, 0.28);
+  --app-glow-emerald: 0 0 30px -5px rgba(52, 211, 153, 0.22);
+
+  --glass-panel-bg: rgba(25, 18, 26, 0.75);
+  --glass-panel-border: rgba(251, 113, 133, 0.14);
+  --glass-card-bg: rgba(34, 24, 36, 0.62);
+  --glass-card-border: rgba(253, 164, 175, 0.12);
+  --glass-card-hover-border: rgba(251, 113, 133, 0.38);
+  --glass-card-hover-shadow: 0 16px 36px -10px rgba(17, 12, 18, 0.6), 0 0 24px -2px rgba(251, 113, 133, 0.22);
+  --hero-glow-bg: radial-gradient(circle at 50% 20%, rgba(244, 63, 94, 0.15) 0%, rgba(251, 113, 133, 0.08) 35%, rgba(253, 164, 175, 0.03) 55%, transparent 72%);
+  --scrollbar-track: #110c12;
+  --scrollbar-thumb: rgba(251, 113, 133, 0.3);
+  --scrollbar-thumb-hover: rgba(251, 113, 133, 0.55);
+  --gradient-border-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.03) 60%, rgba(251, 113, 133, 0.28));
+}
+
+/* ==========================================================================
+   BUTTON & ACTIVE PILL OVERRIDES IN LIGHT MODE
+   Ensure solid rose/blush buttons retain crisp pure white text,
+   and solid amber/orange buttons retain crisp dark text.
+   ========================================================================== */
+html:not(.dark) :is(
+  .bg-accent-violet:not([class*="/"]),
+  .bg-cyan-500:not([class*="/"]),
+  .bg-rose-500:not([class*="/"]),
+  .bg-rose-600:not([class*="/"]),
+  .bg-emerald-500:not([class*="/"]),
+  [class*="from-accent-violet"][class*="to-indigo-600"]:not([class*="bg-clip-text"]),
+  [class*="from-emerald-500"]:not([class*="bg-clip-text"]),
+  [class*="from-accent-violet"][class*="to-cyan-"]:not([class*="bg-clip-text"])
+) {
+  --color-white: #ffffff;
+  color: #ffffff !important;
+}
+
+html:not(.dark) :is(
+  .bg-accent-violet:not([class*="/"]),
+  .bg-cyan-500:not([class*="/"]),
+  .bg-rose-500:not([class*="/"]),
+  .bg-rose-600:not([class*="/"]),
+  .bg-emerald-500:not([class*="/"]),
+  [class*="from-accent-violet"][class*="to-indigo-600"]:not([class*="bg-clip-text"]),
+  [class*="from-emerald-500"]:not([class*="bg-clip-text"]),
+  [class*="from-accent-violet"][class*="to-cyan-"]:not([class*="bg-clip-text"])
+) :is(span, p, svg, strong, div) {
+  --color-white: #ffffff;
+  color: #ffffff;
+}
+
+/* Solid amber & orange buttons retain high-contrast near-black text in Light Mode */
+html:not(.dark) :is(
+  [class*="from-accent-amber"],
+  [class*="bg-amber-"]
+) :is(.text-slate-950, span, svg, strong) {
+  --color-white: #0f070e;
+  color: #0f070e !important;
+}
+
+/* Glassmorphism & Custom Blush Obsidian Styles */
+.glass-panel {
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-panel-border);
+}
+
+.glass-card {
+  background: var(--glass-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-card-border);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  border-color: var(--glass-card-hover-border);
+  box-shadow: var(--glass-card-hover-shadow);
+}
+
+.hero-glow {
+  background: var(--hero-glow-bg);
+}
+
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--gradient-border-bg);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+.animate-subtle-pulse {
+  animation: pulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ==========================================================================
+   GLOBAL PASTEL GRADIENT MESH BACKGROUND (LIGHT MODE ONLY)
+   Matches Tablo reference:
+   - Top-Left: Pearl grey/off-white (#F0EFF2)
+   - Top-Right: Warm pastel yellow (#F2C560)
+   - Center: Soft peach (#F2B392) & blush pink (#F7B0C1)
+   - Lower-Left: Prominent cotton-candy pink glow (#EE9DCC)
+   - Lower-Right: Fade toward pale pink-white (#F1EAEF) + pale mint tint (#D9EDE8)
+   ========================================================================== */
+html:not(.dark) body {
+  background-color: #F0EFF2;
+  background-image:
+    /* Top-Right: Warm pastel yellow bloom */
+    radial-gradient(ellipse 65% 55% at 92% -2%, rgba(242, 197, 96, 0.45), transparent 70%),
+    /* Middle / Upper-Center: Soft peach transition */
+    radial-gradient(ellipse 55% 50% at 56% 26%, rgba(242, 179, 146, 0.36), transparent 68%),
+    /* Lower-Left: Prominent cotton-candy pink bloom */
+    radial-gradient(ellipse 70% 60% at 8% 72%, rgba(238, 157, 204, 0.52), transparent 75%),
+    /* Center-Lower: Blush pink transition */
+    radial-gradient(ellipse 50% 45% at 42% 58%, rgba(247, 176, 193, 0.38), transparent 70%),
+    /* Lower-Right: Subtle pale mint & pale pink-white fade */
+    radial-gradient(ellipse 55% 50% at 94% 88%, rgba(217, 237, 232, 0.45), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 75% 98%, rgba(241, 234, 239, 0.55), transparent 65%),
+    /* Top-Left: Pearl grey sheen */
+    radial-gradient(ellipse 50% 50% at 10% 5%, rgba(240, 239, 242, 0.75), transparent 70%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* Tier 3: Restrained Focus Mode (Workspace Page) */
+html:not(.dark) .pastel-focus-mode {
+  background-color: rgba(240, 239, 242, 0.65);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}

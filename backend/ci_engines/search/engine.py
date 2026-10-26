@@ -49,7 +49,8 @@ class SearchEngine:
         cost_calculator = CostCalculator()
 
         heuristic_calculator = HeuristicCalculator(
-            topics=topics
+            topics=topics,
+            cost_calculator=cost_calculator
         )
 
         astar = AStarSearch(

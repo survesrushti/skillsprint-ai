@@ -45,14 +45,37 @@ def create_app():
         Topic,
         TopicPrerequisite,
         Resource,
-        Goal
+        Goal,
+        StudyLog,
+        Roadmap,
+        RoadmapItem,
+        WeeklyReflection
     )
 
     from routes.goals import goals_bp
     from routes.roadmap import roadmap_bp
+    from routes.tasks import tasks_bp
+    from routes.progress import progress_bp
+    from routes.tracks import tracks_bp
+    from routes.resources import resources_bp
+    from routes.reflections import reflections_bp
+    from middleware.auth import authenticate_request
+
+    app.before_request(authenticate_request)
 
     app.register_blueprint(goals_bp)
     app.register_blueprint(roadmap_bp)
+    app.register_blueprint(tasks_bp)
+    app.register_blueprint(progress_bp)
+    app.register_blueprint(tracks_bp)
+    app.register_blueprint(resources_bp)
+    app.register_blueprint(reflections_bp)
+
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception as db_init_err:
+            app.logger.warning(f"db.create_all() notice: {db_init_err}")
 
     @app.get("/api/v1/health")
     def health():

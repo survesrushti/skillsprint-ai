@@ -1,7 +1,10 @@
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BACKEND_DIR))
+load_dotenv(BACKEND_DIR / ".env")
 
 from extensions import db
 from models import Track, Topic, TopicPrerequisite, Resource
@@ -386,7 +389,10 @@ RESOURCES = {
 }
 
 
-def seed_database():
+def seed_database(app=None):
+    if app is None:
+        from app import app
+
     with app.app_context():
         print("Clearing existing catalog data...")
 

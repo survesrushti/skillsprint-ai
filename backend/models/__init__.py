@@ -7,6 +7,7 @@ from .goal import Goal
 from .study_log import StudyLog
 from .roadmap import Roadmap
 from .roadmap_item import RoadmapItem
+from .reflection import WeeklyReflection
 
 __all__ = [
     "User",
@@ -18,4 +19,5 @@ __all__ = [
     "StudyLog",
     "Roadmap",
     "RoadmapItem",
+    "WeeklyReflection",
 ]

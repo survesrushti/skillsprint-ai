@@ -6,6 +6,11 @@ class CostCalculator:
     def priority_cost(self, topic):
         return float(topic.get("priority", 1.0))
 
+    def minimum_step_cost(self, topic=None):
+        if topic is None:
+            return 1.0
+        return self.priority_cost(topic)
+
     def difficulty_jump_cost(self, previous_topic, current_topic):
         if previous_topic is None:
             return 0.0

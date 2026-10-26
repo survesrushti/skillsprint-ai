@@ -1,9 +1,10 @@
 class HeuristicCalculator:
-    def __init__(self, topics):
+    def __init__(self, topics, cost_calculator=None):
         self.topics = {
             topic["id"]: topic
             for topic in topics
         }
+        self.cost_calculator = cost_calculator
 
     def remaining_minutes(self, remaining_topic_ids):
         total = 0
@@ -36,8 +37,17 @@ class HeuristicCalculator:
     def estimate(
         self,
         remaining_topic_ids,
-        daily_capacity
+        daily_capacity=None
     ):
-        return self.remaining_minutes(
-            remaining_topic_ids
-        )
+        total = 0.0
+
+        for topic_id in remaining_topic_ids:
+            topic = self.topics.get(topic_id)
+            if self.cost_calculator is not None:
+                total += self.cost_calculator.minimum_step_cost(topic)
+            elif topic:
+                total += float(topic.get("priority", 1.0))
+            else:
+                total += 1.0
+
+        return total

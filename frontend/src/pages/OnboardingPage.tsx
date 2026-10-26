@@ -1,57 +1,114 @@
 import { useState } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import Navbar from '../components/layout/Navbar'
+import {
+  Code2,
+  BarChart3,
+  Palette,
+  Sparkles,
+  Calendar,
+  Clock,
+  AlertCircle,
+  Lightbulb,
+} from 'lucide-react'
+import { createGoal } from '../api/client'
+import { soundClick, soundSuccess, soundAlert } from '../utils/sound'
+
+const TRACK_CONFIG: Record<
+  string,
+  { id: number; name: string; subtitle: string; icon: typeof Code2; color: string; suggestions: string[] }
+> = {
+  'full-stack': {
+    id: 1,
+    name: 'Full Stack Development',
+    subtitle: 'React, Flask, SQL, API architectures',
+    icon: Code2,
+    color: 'accent-violet',
+    suggestions: ['HTML', 'CSS', 'JavaScript', 'React', 'Git', 'SQL'],
+  },
+  'data-analytics': {
+    id: 2,
+    name: 'Data Analytics & Engineering',
+    subtitle: 'Python, Pandas, SQL joins, Tableau / BI',
+    icon: BarChart3,
+    color: 'accent-cyan',
+    suggestions: ['Python', 'SQL', 'Excel', 'Statistics', 'Pandas'],
+  },
+  'ui-ux': {
+    id: 3,
+    name: 'UI/UX Product Design',
+    subtitle: 'Figma, Design Systems, UX research & wireframing',
+    icon: Palette,
+    color: 'accent-rose',
+    suggestions: ['Figma', 'Wireframing', 'User Research', 'Design Systems'],
+  },
+}
+
+function normalizeTrackSlug(raw: string | null): string {
+  if (!raw) return 'full-stack'
+  if (raw === 'full-stack-development') return 'full-stack'
+  if (raw === 'ui-ux-design') return 'ui-ux'
+  if (TRACK_CONFIG[raw]) return raw
+  return 'full-stack'
+}
 
 function OnboardingPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
 
-  const selectedTrack =
-    searchParams.get('track') ||
-    location.state?.track ||
-    'full-stack'
+  const initialTrack = normalizeTrackSlug(
+    searchParams.get('track') || location.state?.track || 'full-stack'
+  )
 
-  const [level, setLevel] = useState('Beginner')
-  const [studyHours, setStudyHours] = useState('2')
-  const [targetDate, setTargetDate] = useState('')
-  const [knownTopics, setKnownTopics] = useState('')
-  const [commitment, setCommitment] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [selectedTrack, setSelectedTrack] = useState<string>(initialTrack)
+  const [level, setLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Beginner')
+  const [studyHours, setStudyHours] = useState<string>('2.0')
+  const [targetDate, setTargetDate] = useState<string>('')
+  const [reminderTime, setReminderTime] = useState<string>(
+    typeof window !== 'undefined'
+      ? localStorage.getItem('skillsprint_reminder_time') || '19:30'
+      : '19:30'
+  )
+  const [knownTopics, setKnownTopics] = useState<string>('')
+  const [commitment, setCommitment] = useState<boolean>(true)
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [error, setError] = useState<string>('')
 
-  const trackIds: Record<string, number> = {
-    'full-stack': 1,
-    'data-analytics': 2,
-    'ui-ux': 3,
+  const activeTrackMeta = TRACK_CONFIG[selectedTrack] || TRACK_CONFIG['full-stack']
+
+  function addSuggestedTopic(topic: string) {
+    soundClick()
+    const current = knownTopics
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean)
+    if (!current.includes(topic)) {
+      current.push(topic)
+      setKnownTopics(current.join(', '))
+    }
   }
 
-  const trackNames: Record<string, string> = {
-    'full-stack': 'Full Stack Development',
-    'data-analytics': 'Data Analytics',
-    'ui-ux': 'UI/UX Design',
-  }
-
-  const selectedTrackId = trackIds[selectedTrack]
-
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!targetDate || !commitment) {
+    if (!targetDate) {
+      soundAlert()
+      setError('Please choose a valid target completion date.')
       return
     }
 
-    if (!selectedTrackId) {
-      setError('Invalid learning track selected.')
+    if (!commitment) {
+      soundAlert()
+      setError('Please agree to the Goal Commitment pledge to proceed.')
       return
     }
 
     setIsSubmitting(true)
     setError('')
+    soundClick()
 
     const [year, month, day] = targetDate.split('-')
-
     const formattedTargetDate = `${day}/${month}/${year}`
 
     const knownTopicsList = knownTopics
@@ -59,58 +116,41 @@ function OnboardingPage() {
       .map((topic) => topic.trim())
       .filter((topic) => topic.length > 0)
 
-    const onboardingData = {
-      track: selectedTrack,
-      track_id: selectedTrackId,
-      level,
-      studyHours: Number(studyHours),
-      targetDate: formattedTargetDate,
-      knownTopics: knownTopicsList,
-      commitment,
-    }
-
     try {
-      const response = await fetch(
-        'http://127.0.0.1:5000/api/v1/goals',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            track_id: selectedTrackId,
-            skill_level: level,
-            study_hours_per_day: Number(studyHours),
-            target_date: formattedTargetDate,
-            known_topics: knownTopicsList,
-            commitment,
-          }),
-        }
-      )
+      const response = await createGoal({
+        track_id: activeTrackMeta.id,
+        skill_level: level,
+        study_hours_per_day: parseFloat(studyHours),
+        target_date: formattedTargetDate,
+        known_topics: knownTopicsList,
+        commitment,
+      })
 
-      const data = await response.json()
+      const createdGoal = response.goal
+      localStorage.setItem('skillsprint_active_goal_id', String(createdGoal.id))
+      localStorage.setItem('skillsprint_reminder_time', reminderTime)
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || 'Could not create your learning goal.'
-        )
-      }
+      soundSuccess()
 
-      console.log('Goal created:', data)
-
-      navigate('/roadmap', {
+      navigate(`/roadmap?goal_id=${createdGoal.id}`, {
         state: {
-          ...onboardingData,
-          goalId: data.goal.id,
+          track: selectedTrack,
+          track_id: activeTrackMeta.id,
+          level,
+          studyHours: parseFloat(studyHours),
+          targetDate: formattedTargetDate,
+          knownTopics: knownTopicsList,
+          commitment,
+          goalId: createdGoal.id,
         },
       })
     } catch (submitError) {
+      soundAlert()
       console.error('Goal creation error:', submitError)
-
       setError(
         submitError instanceof Error
           ? submitError.message
-          : 'Could not connect to the backend.'
+          : 'Could not connect to the backend to generate your roadmap.'
       )
     } finally {
       setIsSubmitting(false)
@@ -118,158 +158,271 @@ function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-12 text-white lg:px-12">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-10">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-400">
-            Step 1 of 2
-          </p>
+    <>
+      <Navbar />
 
-          <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-            Set up your learning goal
-          </h1>
-
-          <p className="mt-4 leading-7 text-slate-400">
-            Tell SkillSprint AI about your learning situation so it can
-            prepare a personalized roadmap.
-          </p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-8 rounded-3xl border border-slate-800 bg-slate-900 p-7 sm:p-10"
-        >
+      <main className="min-h-screen text-slate-100 px-4 sm:px-6 lg:px-8 py-10 max-w-4xl mx-auto w-full">
+        <div className="glass-panel rounded-3xl p-6 sm:p-10 border border-slate-800 gradient-border shadow-2xl space-y-8">
+          {/* Header */}
           <div>
-            <label className="text-sm font-semibold text-slate-200">
-              Selected Learning Track
-            </label>
-
-            <div className="mt-3 rounded-xl border border-cyan-400/30 bg-cyan-400/5 px-4 py-3 text-cyan-400">
-              {trackNames[selectedTrack] || 'Unknown Track'}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-violet/10 text-accent-violet text-xs font-mono mb-2">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Step 1 of 1: Goal Commitment Formulation</span>
             </div>
-          </div>
 
-          <div>
-            <label
-              htmlFor="level"
-              className="text-sm font-semibold text-slate-200"
-            >
-              Current Skill Level
-            </label>
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Configure Your Adaptive Roadmap
+            </h1>
 
-            <select
-              id="level"
-              value={level}
-              onChange={(event) => setLevel(event.target.value)}
-              className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
-            >
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="studyHours"
-              className="text-sm font-semibold text-slate-200"
-            >
-              Available Study Hours Per Day
-            </label>
-
-            <select
-              id="studyHours"
-              value={studyHours}
-              onChange={(event) => setStudyHours(event.target.value)}
-              className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
-            >
-              <option value="1">1 hour</option>
-              <option value="2">2 hours</option>
-              <option value="3">3 hours</option>
-              <option value="4">4 hours</option>
-              <option value="5">5 hours</option>
-              <option value="6">6+ hours</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="targetDate"
-              className="text-sm font-semibold text-slate-200"
-            >
-              Target Completion Date
-            </label>
-
-            <input
-              id="targetDate"
-              type="date"
-              value={targetDate}
-              onChange={(event) => setTargetDate(event.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="knownTopics"
-              className="text-sm font-semibold text-slate-200"
-            >
-              Topics You Already Know
-            </label>
-
-            <textarea
-              id="knownTopics"
-              value={knownTopics}
-              onChange={(event) => setKnownTopics(event.target.value)}
-              placeholder="Example: HTML, CSS, basic JavaScript"
-              rows={4}
-              className="mt-3 w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder:text-slate-600 outline-none focus:border-cyan-400"
-            />
-
-            <p className="mt-2 text-xs text-slate-500">
-              Separate multiple topics with commas.
+            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+              SkillSprint AI will synthesize your inputs through our heuristic search engine to construct an
+              optimized, re-schedulable study path.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-5">
-            <label className="flex cursor-pointer gap-3">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* 1. Track Selector */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold uppercase font-mono tracking-wider text-slate-300">
+                1. Select Curated Learning Track
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {Object.entries(TRACK_CONFIG).map(([slug, meta]) => {
+                  const isSelected = selectedTrack === slug
+                  const IconComponent = meta.icon
+
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      onClick={() => {
+                        soundClick()
+                        setSelectedTrack(slug)
+                      }}
+                      className={`text-left p-4 rounded-xl border transition flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-accent-violet bg-accent-violet/10 shadow-glow-violet'
+                          : 'border-slate-800 bg-obsidian-900/60 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <IconComponent
+                            className={`w-5 h-5 ${
+                              isSelected ? 'text-accent-violet' : 'text-slate-400'
+                            }`}
+                          />
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full transition ${
+                              isSelected ? 'bg-accent-violet shadow-sm' : 'bg-slate-700'
+                            }`}
+                          />
+                        </div>
+                        <p className="font-bold text-sm text-white">{meta.name}</p>
+                        <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                          {meta.subtitle}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 2. Prior Knowledge Level */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold uppercase font-mono tracking-wider text-slate-300">
+                2. Current Experience Level
+              </label>
+
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'Beginner', label: 'Beginner', sub: 'Full Foundations' },
+                  { id: 'Intermediate', label: 'Intermediate', sub: 'Skips Basics' },
+                  { id: 'Advanced', label: 'Fast-Tracker', sub: 'Focus on Projects' },
+                ].map((tier) => {
+                  const isSelected = level === tier.id
+
+                  return (
+                    <button
+                      key={tier.id}
+                      type="button"
+                      onClick={() => {
+                        soundClick()
+                        setLevel(tier.id as 'Beginner' | 'Intermediate' | 'Advanced')
+                      }}
+                      className={`p-3 rounded-xl border text-center transition ${
+                        isSelected
+                          ? 'border-accent-violet bg-accent-violet/10 text-accent-violet font-bold shadow-sm'
+                          : 'border-slate-800 bg-obsidian-900/60 hover:border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">{tier.label}</p>
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">{tier.sub}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 3. Daily Study Hours (Slider) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <label className="font-bold uppercase tracking-wider text-slate-300">
+                  3. Daily Available Study Hours
+                </label>
+                <span className="text-accent-violet font-bold text-sm">
+                  {studyHours} Hours / Day
+                </span>
+              </div>
+
               <input
-                type="checkbox"
-                checked={commitment}
-                onChange={(event) =>
-                  setCommitment(event.target.checked)
-                }
-                className="mt-1 h-4 w-4 accent-cyan-400"
-                required
+                type="range"
+                min="0.5"
+                max="5.0"
+                step="0.5"
+                value={studyHours}
+                onChange={(e) => setStudyHours(e.target.value)}
+                className="w-full h-2 bg-obsidian-800 rounded-lg appearance-none cursor-pointer accent-accent-violet"
               />
 
-              <span className="text-sm leading-6 text-slate-300">
-                I commit to following my learning plan and completing my
-                scheduled study sessions as consistently as possible.
-              </span>
-            </label>
-          </div>
-
-          {error && (
-            <div className="rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-300">
-              {error}
+              <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>0.5h (Micro-sprints)</span>
+                <span>2.0h (Recommended)</span>
+                <span>5.0h (Intensive)</span>
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-xl bg-cyan-400 px-6 py-3.5 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting
-              ? 'Saving Your Goal...'
-              : 'Generate My Roadmap'}
-          </button>
-        </form>
-      </div>
-    </main>
+            {/* 4. Target Date & Reminder Time */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="targetDate"
+                  className="text-xs font-bold uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5"
+                >
+                  <Calendar className="w-3.5 h-3.5 text-accent-violet" />
+                  <span>4. Target Completion Date</span>
+                </label>
+                <input
+                  id="targetDate"
+                  type="date"
+                  value={targetDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  required
+                  className="w-full bg-obsidian-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-accent-violet font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="reminderTime"
+                  className="text-xs font-bold uppercase font-mono tracking-wider text-slate-300 flex items-center gap-1.5"
+                >
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>5. Gentle Reminder Schedule</span>
+                </label>
+                <input
+                  id="reminderTime"
+                  type="time"
+                  value={reminderTime}
+                  onChange={(e) => setReminderTime(e.target.value)}
+                  className="w-full bg-obsidian-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-accent-violet font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 6. Known Topics */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="knownTopics"
+                  className="text-xs font-bold uppercase font-mono tracking-wider text-slate-300"
+                >
+                  6. Topics You Already Know (Optional)
+                </label>
+                <span className="text-[10px] text-slate-500 font-mono">Comma-separated</span>
+              </div>
+
+              <textarea
+                id="knownTopics"
+                value={knownTopics}
+                onChange={(e) => setKnownTopics(e.target.value)}
+                placeholder="Example: HTML, CSS, basic JavaScript"
+                rows={3}
+                className="w-full bg-obsidian-900 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-accent-violet resize-none"
+              />
+
+              {/* Suggestions Chips */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1 mr-1">
+                  <Lightbulb className="w-3 h-3 text-amber-400" />
+                  Quick add:
+                </span>
+                {activeTrackMeta.suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => addSuggestedTopic(suggestion)}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-obsidian-900 border border-slate-800 hover:border-accent-violet hover:text-accent-violet text-slate-400 transition"
+                  >
+                    + {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 7. Goal Commitment Pledge Contract */}
+            <div className="p-4 rounded-xl bg-obsidian-900/80 border border-slate-800 flex items-start gap-3">
+              <input
+                id="pledgeCheck"
+                type="checkbox"
+                checked={commitment}
+                onChange={(e) => setCommitment(e.target.checked)}
+                required
+                className="mt-0.5 w-4 h-4 rounded text-accent-violet bg-obsidian-950 border-slate-700 cursor-pointer accent-accent-violet"
+              />
+              <label htmlFor="pledgeCheck" className="text-xs text-slate-300 leading-relaxed cursor-pointer">
+                <strong>Goal Commitment Contract:</strong> I pledge to study consistently toward my selected
+                track. If I miss study sessions, I agree to let SkillSprint AI's Rule-Based Expert System and
+                Fuzzy Logic engine intelligently re-route my syllabus without penalty.
+              </label>
+            </div>
+
+            {/* Error Banner */}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-accent-violet via-indigo-600 to-cyan-500 hover:from-accent-violet/90 hover:to-cyan-400 text-white font-semibold text-sm shadow-glow-violet transition flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span>Synthesizing Adaptive Roadmap...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Synthesize Roadmap with Computational Search</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </main>
+    </>
   )
 }
 
