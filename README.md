@@ -1,4 +1,4 @@
-# SkillSprint AI — Adaptive Learning Coach
+# SkillSprint AI — An Adaptive Learning Coach
 
 SkillSprint AI is an intelligent, self-paced learning coach that transforms static learning roadmaps into dynamic, computationally optimized study journeys. By integrating **A* Graph Search**, **Mamdani Fuzzy Logic**, and a **Rule-Based Expert System**, SkillSprint AI actively monitors learner progress, calculates cognitive pace drift, and automatically rebalances study plans when schedules slip.
 
